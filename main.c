@@ -20,12 +20,19 @@ float rand_float(void)
 
 //just accepting the model as a parameter
 //in this case it is just one parameter
-float cost(float w)
+
+//x1, x2, x3, ... , b
+//w1, w2, q3, ...
+//y = x1*w1, x2*w2 + w3*w3 + ... + b
+//idea here is of "weighted connections" - see artifical neuron photo 
+//also one value tht is not dependent on the inputs - "b" (bias! )
+
+float cost(float w, float b)
 {
     float result = 0.0f;
     for(size_t i = 0; i < train_count; i++){
         float x = train[i][0];
-        float y = x * w;
+        float y = x*w + b;
         float error = y - train[i][1];
         result += error*error;
     }
@@ -37,21 +44,29 @@ float cost(float w)
 
 int main()
 {
-    //srand(time(0));
-    srand(69);
+    srand(time(0));
     //all we know is y = x*w , x is input , w is a "parameter" of our model
     float w = rand_float()*10.0f;
+    float b = rand_float()*5.0f;
 
     //eps here is just generally trying to shift the parameter
+    // if it doesnt work - just mess around with these numbers... .  
     float eps = 1e-3;
     float rate = 1e-3;
+
+    printf("%f\n", cost(w,b));
     for (size_t i = 0; i < 500; ++i){
-        float dcost = (cost(w + eps) - cost(w) )/ eps;  
-        w -= rate*dcost; //well known method called finite difference
-        printf("%f\n", cost(w));
+
+        float c = cost(w, b);
+        float dw = (cost(w + eps, b) - c)/ eps;
+        float db = (cost(w, b + eps) - c)/ eps;
+      
+        w -= rate*dw; //well known method called finite difference
+        b -= rate*db;
+        printf("cost = %f, w = %f\n, b = %f\n", cost(w,b), w, b);
     }
     printf("-----------------------------------\n");
-    printf("%f\n", w);
+    printf("w = %f, b = %f\n", w, b); 
 
     return 0;
 }
