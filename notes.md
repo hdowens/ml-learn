@@ -39,3 +39,9 @@ Imagine a parabola represents the cost function- at any time we are at a given p
 
 learning rate is the rate at which the derivative estimation should change - if its too big the model is going to overshoot, right?
 
+activation function : once summation is done the values are completely unbound -> it needs isolated. What's used: Sigmoid!
+sigmoid maps values from -inf->+inf to 0->1
+
+modern version-> people use ReLu
+
+xor is not modelable by a single neuron -> single neurons can only model linear functions
