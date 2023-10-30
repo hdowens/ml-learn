@@ -8,40 +8,31 @@ float sigmoidf(float x)
     return 1.f / (1.f + expf(-x));
 }
 
+typedef float sample[3];
 
-//OR GATE
-//First two elements are the input, 3rd is output
-//float train[][3] = {
-//    {0, 0, 0},
-//    {1, 0, 1},
-//    {0, 1, 1},
-//    {1, 1, 1}
-//};
-  
-//AND GATE
-//float train[][3] = {
-//    {0, 0, 0},
-//    {1, 0, 0},
-//    {0, 1, 0},
-//    {1, 1, 1}
-//};
-
-//NAND GATE
-//float train[][3] = {
-//    {0, 0, 1},
-//    {1, 0, 1},
-//    {0, 1, 1},
-//    {1, 1, 0}
-//};
-
-float train[][3] = {
+sample or_train[] = {
     {0, 0, 0},
+    {1, 0, 1},
+    {0, 1, 1},
+    {1, 1, 1}
+};
+
+sample and_train[] = {
+    {0, 0, 0},
+    {1, 0, 0},
+    {0, 1, 0},
+    {1, 1, 1}
+};
+
+sample nand_train[] = {
+    {0, 0, 1},
     {1, 0, 1},
     {0, 1, 1},
     {1, 1, 0}
 };
 
-#define train_count (sizeof(train)/sizeof(train[0]))
+sample *train = nand_train;
+#define train_count 4
 
 float cost(float w1, float w2, float b)
 {
@@ -95,3 +86,33 @@ int main(void)
         }
     }
 }
+
+
+//OR GATE
+//First two elements are the input, 3rd is output
+//float train[][3] = {
+//    {0, 0, 0},
+//    {1, 0, 1},
+//    {0, 1, 1},
+//    {1, 1, 1}
+//};
+  
+//AND GATE
+//float train[][3] = {
+//    {0, 0, 0},
+//    {1, 0, 0},
+//    {0, 1, 0},
+//    {1, 1, 1}
+//};
+
+//NAND GATE
+//float train[][3] = {
+//    {0, 0, 1},
+//    {1, 0, 1},
+//    {0, 1, 1},
+//    {1, 1, 0}
+//};
+
+//XOR GATE
+//(x|y) & ~(x,y)
+//(AND(X,Y)) AND NOT(AND(X,Y))
