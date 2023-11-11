@@ -37,11 +37,11 @@ this type of thing is called the cost/loss function
 our cost function is essentially a mathematical function. 
 Imagine a parabola represents the cost function- at any time we are at a given point. Essentially, if we take the derivative of that function, it will tell us in which direction the function grows. We need to move in the opposite grows, which means we approach the minimum of the cost function!
 
+
 learning rate is the rate at which the derivative estimation should change - if its too big the model is going to overshoot, right?
 
 activation function : once summation is done the values are completely unbound -> it needs isolated. What's used: Sigmoid!
 sigmoid maps values from -inf->+inf to 0->1
-
 modern version-> people use ReLu
 
-xor is not modelable by a single neuron -> single neurons can only model linear functions
+xor is not modelable by a single neuron -> single neurons can only model linear functions. The cost function for a single neuron XOR nn will be asymptopic to 0.25
