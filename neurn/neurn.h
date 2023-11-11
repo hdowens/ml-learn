@@ -32,35 +32,38 @@ typedef struct {
 } Mat;
 
 #define MAT_AT(m, i, j) (m).es[(i)*(m).stride + (j)]
-#define MAT_PRINT(m) mat_print(m, #m);
-
-
+#define MAT_PRINT(m) mat_print(m, #m, 0);
 
 Mat mat_alloc(size_t rows, size_t cols);
 void mat_rand(Mat m, float low, float high);
 void mat_fill(Mat m, float n);
 Mat mat_row(Mat m, size_t row);
 void mat_copy(Mat dst, Mat src);
-void mat_print(Mat a, const char *name);
+void mat_print(Mat a, const char *name, size_t padding);
 void mat_sig(Mat m);
 //destination is first for these memory copying fncts
 void mat_dot(Mat dst, Mat a, Mat b);
 void mat_sum(Mat dst, Mat a);
-
 typedef struct {
     size_t count;
     Mat *ws;
     Mat *bs;
     Mat *as; //amount of activations is count+1
-} NN;
+} NEURN;
+
+#define NEURN_INPUT(nn) (nn).as[0]
+#define NEURN_OUTPUT(nn) (nn).as[(nn).count]
 
 
-//size_t arch = {2, 2, 1}
-// NN nn = nn_alloc(arch, ARRAY_LEN(arch))
+NEURN neurn_alloc(size_t *arch, size_t arch_count);
+void neurn_print(NEURN nn, const char *name);
+#define NEURN_PRINT(nn) neurn_print(nn, #nn); 
+void neurn_rand(NEURN nn, float low, float high);
+void neurn_forward(NEURN nn);
+float neurn_cost(NEURN nn, Mat ti, Mat to);
+void neurn_finite_diff(NEURN nn, NEURN g, float eps, Mat ti, Mat to);
+void neurn_learn(NEURN nn, NEURN g, float rate);
 
-NN nn_alloc(size_t *arch, size_t arch_count);
-
- 
 #endif //END OF HEADER PART
 
 #ifdef NEURN_IMPLEMENTATION
@@ -128,16 +131,32 @@ void mat_copy(Mat dst, Mat src)
 
 }
 
-void mat_print(Mat m, const char *name)
+/*
+    %*s: This is the format specifier. 
+    The asterisk * indicates that the width of the field is specified by an additional 
+    argument, and s for string
+
+    (int) padding: This is the additional argument specifying the width of the field. 
+    The (int) cast is used to ensure that padding is treated as an integer. 
+    The value of padding determines how many spaces will be printed as padding.
+
+    "": An empty string
+
+    This is done to dynamically pad the matrices at runtime
+
+*/
+
+void mat_print(Mat m, const char *name, size_t padding)
 {
-    printf("%s = [\n", name);
+    printf("%*s%s = [\n", (int) padding, "", name);
     for(size_t i = 0; i < m.rows; ++i){
+        printf("%*s    ", (int) padding, "");
         for(size_t j = 0; j < m.cols; ++j){
-            printf("    %f ", MAT_AT(m, i, j));
+            printf("%f ", MAT_AT(m, i, j));
         }
         printf("\n");
     }
-    printf("]\n");
+    printf("%*s]\n",(int) padding, "");
 }
 
 void mat_sig(Mat m)
@@ -181,11 +200,11 @@ void mat_sum(Mat dst, Mat a)
     }
 }
 
-NN nn_alloc(size_t *arch, size_t arch_count)
+NEURN neurn_alloc(size_t *arch, size_t arch_count)
 {
     NEURN_ASSERT(arch_count > 0);
 
-    NN nn;
+    NEURN nn;
     nn.count = arch_count - 1;
 
     nn.ws = NEURN_MALLOC(sizeof(*nn.ws)*nn.count);
@@ -198,11 +217,112 @@ NN nn_alloc(size_t *arch, size_t arch_count)
     nn.as[0] = mat_alloc(1, arch[0]);
     for(size_t i = 1; i < arch_count; ++i){
         nn.ws[i-1] = mat_alloc(nn.as[i-1].cols, arch[i]);
+        mat_fill(nn.ws[i-1], 0);
         nn.bs[i-1] = mat_alloc(1, arch[i]);
+        mat_fill(nn.bs[i-1], 0);
         nn.as[i]   = mat_alloc(1, arch[i]);
+        mat_fill(nn.as[i], 0);
     }
 
     return nn;
 }
+
+void neurn_print(NEURN nn, const char *name)
+{
+    char buf[256];
+    printf("%s = [\n", name);
+    for(size_t i = 0; i < nn.count; ++i){
+        snprintf(buf, sizeof(buf), "ws%zu", i);
+        mat_print(nn.ws[i], buf, 4);
+        snprintf(buf, sizeof(buf), "bs%zu", i);
+        mat_print(nn.bs[i], buf, 4);
+    }
+    printf("]\n");
+}
+
+void neurn_rand(NEURN nn, float low, float high)
+{
+    for(size_t i = 0; i < nn.count; ++i){
+        mat_rand(nn.ws[i], low, high);
+        mat_rand(nn.bs[i], low, high);
+    }
+}
+
+void neurn_forward(NEURN nn)
+{
+    for(size_t i = 0 ; i < nn.count; ++i){
+        mat_dot(nn.as[i+1], nn.as[i], nn.ws[i]);
+        mat_sum(nn.as[i+1], nn.bs[i]);
+        mat_sig(nn.as[i+1]);
+    }
+}
+
+float neurn_cost(NEURN nn, Mat ti, Mat to)
+{
+    assert(ti.rows == to.rows);
+    assert(to.cols == NEURN_OUTPUT(nn).cols);
+    size_t n = ti.rows;
+    
+    float c = 0;
+    for(size_t i = 0; i < n; ++i){
+        Mat x = mat_row(ti, i); //expected input
+        Mat y = mat_row(to, i); //expected output
+
+        mat_copy(NEURN_INPUT(nn), x);
+        neurn_forward(nn);
+        NEURN_OUTPUT(nn);
+        size_t q = to.cols;
+        for(size_t j = 0; j < q; j++){
+            float d = MAT_AT(NEURN_OUTPUT(nn), 0, j) - MAT_AT(y, 0, j);
+            c += d*d;
+        }
+    }
+
+    return c/n;
+}
+
+void neurn_finite_diff(NEURN nn, NEURN g, float eps, Mat ti, Mat to)
+{
+    float saved;
+    float c = neurn_cost(nn, ti, to);
+
+    for(size_t i = 0; i < nn.count; i++){
+        for(size_t j = 0; j < nn.ws[i].rows; ++j){
+            for(size_t k = 0; k < nn.ws[i].cols; ++k){
+                saved = MAT_AT(nn.ws[i], j, k);
+                MAT_AT(nn.ws[i], j, k) += eps;
+                MAT_AT(g.ws[i], j, k) = (neurn_cost(nn, ti, to) - c) / eps;
+                MAT_AT(nn.ws[i], j, k) = saved;
+            }
+        }
+    
+        for(size_t j = 0; j < nn.bs[i].rows; ++j){
+            for(size_t k = 0; k < nn.bs[i].cols; ++k){
+                saved = MAT_AT(nn.bs[i], j, k);
+                MAT_AT(nn.bs[i], j, k) += eps;
+                MAT_AT(g.bs[i], j, k) = (neurn_cost(nn, ti, to) - c) / eps;
+                MAT_AT(nn.bs[i], j, k) = saved;
+            }
+        }
+    }
+}
+
+void neurn_learn(NEURN nn, NEURN g, float rate)
+{
+    for(size_t i = 0; i < nn.count; i++){
+        for(size_t j = 0; j < nn.ws[i].rows; ++j){
+            for(size_t k = 0; k < nn.ws[i].cols; ++k){
+                MAT_AT(nn.ws[i], j, k) -= rate * MAT_AT(g.ws[i], j, k);
+            }
+        }
+    
+        for(size_t j = 0; j < nn.bs[i].rows; ++j){
+            for(size_t k = 0; k < nn.bs[i].cols; ++k){
+                MAT_AT(nn.bs[i], j, k) -= rate * MAT_AT(g.bs[i], j, k);
+            }
+        }
+    }
+}
+
 
 #endif //NEURN_IMPLEMENTATION

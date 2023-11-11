@@ -146,6 +146,7 @@ float td[] = {
 int main(void)
 {
     srand(time(0));
+    
     size_t stride = 3;
     size_t n = sizeof(td)/sizeof(td[0])/stride;
 
@@ -163,37 +164,31 @@ int main(void)
         .es = td + 2
     };
 
-    Xor m = xor_alloc();
-    Xor g = xor_alloc();
-
-    mat_rand(m.w1, 0, 1);
-    mat_rand(m.b1, 0, 1);
-    mat_rand(m.w2, 0, 1);
-    mat_rand(m.b2, 0, 1);
-
+    size_t arch[] = {2, 2, 1};
+    NEURN nn = neurn_alloc(arch, ARRAY_LEN(arch));
+    NEURN g  = neurn_alloc(arch, ARRAY_LEN(arch));
+    neurn_rand(nn, 0, 1);
+    
     float eps  = 1e-1;
     float rate = 1e-1;
 
-    printf("cost = %f\n", cost(m, ti, to));
-    for(size_t i = 0; i < 1000000; ++i){
-        finite_diff(m ,g, eps, ti, to);
-        xor_learn(m, g, rate);
-        //printf("%zu: cost = %f\n", i, cost(m, ti, to));
+    printf("cost = %f\n", neurn_cost(nn, ti, to));
+    for(size_t i = 0 ; i < 100000; i++){
+        neurn_finite_diff(nn, g, eps, ti, to);
+        neurn_learn(nn, g, rate);
+        //printf("%zu: cost = %f\n", i, neurn_cost(nn, ti, to));
     }
 
     printf("--------------------------------\n");
 
     for(size_t i = 0; i < 2; ++i){
         for(size_t j = 0; j < 2; j++){
-            MAT_AT(m.a0, 0, 0) = i;
-            MAT_AT(m.a0, 0, 1) = j;
-            forward_xor(m);
-            float y = *m.a2.es;
-            printf("%zu ^ %zu = %f\n", i, j, y);
+            MAT_AT(NEURN_INPUT(nn), 0, 0) = i;
+            MAT_AT(NEURN_INPUT(nn), 0, 1) = j;
+            neurn_forward(nn);
+            printf("%zu ^ %zu = %f\n", i, j, MAT_AT(NEURN_OUTPUT(nn), 0, 0));
         }
     }
-
-    //printf("cost = %f\n", cost(m, ti, to));
-
     return 0;
+
 }
