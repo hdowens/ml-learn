@@ -1,0 +1,51 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{tikz}
+
+\begin{document}
+\section{Gradient Descent}
+
+\begin{align}
+C'(w_i) = \lim_{\epsilon \to 0}\frac{C(w_i + \epsilon) - C(w_i)}{\epsilon}
+\end{align}
+
+\text{This is literally the formula for a derivitive}
+
+\subsection{``Twice''}
+
+\begin{align}
+    C(w)  &= \frac{1}{n}\sum_{i=1}^{n}(x_iw - y_i)^2 \\
+    C'(w) &= \left(\frac{1}{n}\sum_{i=1}^{n}(x_iw - y_i)^2\right)' \\
+          &= \frac{1}{n}\left(\sum_{i=1}^{n}(x_iw - y_i)^2\right)' \\
+          &= \frac{1}{n}\sum_{i=1}^{n}\left((x_iw - y_i)^2\right)' \\
+          & \text{we meed to use the chain rule now} \\
+          & f(x) = x^2, g(x) = (x \dot w - y) \\
+          &= \frac{1}{n}\sum_{i=1}^{n}\left(2(x_iw - y_i) \dot (x_iw - y_i)'\right) \\
+    C'(w) &= \frac{1}{n}\sum_{i=1}^{n}\left(2(x_iw - y_i) \dot (x_i)\right) 
+\end{align}
+
+\def\d{1.5}
+
+\subsection{``Solo Neuron Model''}
+\begin{center}
+    \begin{tikzpicture}
+        \node (X) at (-\d,0) {$x$};
+        \node[shape=circle, draw=black] (N) at (0,0) {$\sigma, w, b$};
+        \node (Y) at (\d,0) {$y$};
+        \path[->] (X) edge (N);
+        \path[->] (N) edge (Y);
+    \end{tikzpicture}    
+\end{center}
+
+
+
+\begin{align}
+    y &= \sigma(xw + b) \\
+    \sigma(x) &= \frac{1}{1 + e^{-x}} \\
+    \sigma'(x) &= \sigma(x)(1 - \sigma(x)) 
+\end{align}
+
+
+
+\end{document}
